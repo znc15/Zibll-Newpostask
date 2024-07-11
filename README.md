@@ -100,6 +100,7 @@
 ![](https://i1.mcobj.com/imgb/u15prb/20240711_668f83f7414be.png)
 ![](https://i1.mcobj.com/imgb/u15prb/20240711_668f83f7c71c5.png)
 
-## 问题
+## 问题反馈
 [Telegram](https://t.me/Count_API)
+ 
 [Issue](https://github.com/znc15/Zibll-Newpostask/issues)
