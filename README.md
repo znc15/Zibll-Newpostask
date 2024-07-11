@@ -90,7 +90,7 @@
     COMMIT;
 
     ```
-6. 添加题目请暂时在数据库表 fl_ask_tm 按照默认题目的格式手动添加，需要注意的是答案选项需要用 | 分开，最多四个选项。例如 答案1|答案2|答案3|答案4
+6. 添加题目需要注意的是答案选项需要用 | 分开，最多四个选项。例如 答案1|答案2|答案3|答案4
 
 ## LICENSE
 [GPL-3.0 license](https://github.com/znc15/Zibll-Newpostask?tab=GPL-3.0-1-ov-file#readme)
