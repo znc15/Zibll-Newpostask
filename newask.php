@@ -14,38 +14,57 @@ if ( ! defined( 'ABSPATH' ) ) {
 register_activation_hook(__FILE__, 'plugin_activate');
 
 function plugin_activate() { 
-	$sql1 = "
-	CREATE TABLE `fl_ask_tm` (
-	`ID` int(11) NOT NULL AUTO_INCREMENT,
-	`type` varchar(255) NOT NULL,
-	`name` longtext NOT NULL,
-	`all_answer` longtext DEFAULT NULL,
-	`answer` varchar(255) DEFAULT NULL,
-	`tips` longtext DEFAULT NULL,
-	`score` int(255) NOT NULL,
-	PRIMARY KEY (`ID`)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
-	";
+    $sql1 = "
+CREATE TABLE `fl_ask_tm` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(255) NOT NULL,
+  `name` longtext NOT NULL,
+  `all_answer` longtext DEFAULT NULL,
+  `answer` varchar(255) DEFAULT NULL,
+  `tips` longtext DEFAULT NULL,
+  `score` int(255) NOT NULL,
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
 
-	$sql2 = "
-	CREATE TABLE `wp_fl_meta` (
-	`ID` int(11) NOT NULL AUTO_INCREMENT,
-	`meta_id` varchar(255) CHARACTER SET utf8mb4 COLLATE=utf8mb4_unicode_520_ci NOT NULL,
-	`meta_key` varchar(255) CHARACTER SET utf8mb4 COLLATE=utf8mb4_unicode_520_ci NOT NULL,
-	`meta_var` longtext CHARACTER SET utf8mb4 COLLATE=utf8mb4_unicode_520_ci NOT NULL,
-	PRIMARY KEY (`ID`)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
-	";
+INSERT INTO `fl_ask_tm` (`ID`, `type`, `name`, `all_answer`, `answer`, `tips`, `score`) VALUES
+(1, '标题规范题', '以下图包投稿类标题哪个是正确的？', '【Fantia/图包/无修正】JIMA大佬22.10-23.01作品合集（36P/560M）|【Fantia/图包/无修正】JIMA大佬22.10-23.01作品合集（560M） |【Fantia/图包/无修正】JIMA大佬22.10-23.01作品合集（36P）|【Fantia/图包/无修正】JIMA大佬22.10-23.01作品合集', 'A', '规范中表明了投稿标题格式应为：【分类】资源名称【数量/大小】，非图片/视频类投稿因标注大小，求物类因标注分类。', 5),
+(2, '内容规范题', '以下投稿所设置的解压密码是否存在违规？如果有，请选出违规密码。', 'boluoyyds|acg.la|flcy.us|pornhub.com', 'D', '投稿规范中说明了解压密码推荐使用acg.la或本站网址，禁止直接使用其他网站的网址为解压密码，可以自行更改解压码为acg.la后压缩上传 （如果你是搬运，最好经过原主同意）', 10),
+(3, '内容规范题', '用以下哪种网盘进行分享的文件是不符合本站要求的？', '百度网盘|谷歌网盘|磁力链接|城通网盘', 'D', '本提请参考投稿内容规范，规范内明确注明了网盘链接分享规范。', 5),
+(4, '内容规范题', '以下哪种情况下，打码合格？', '可以看到乳头形状的投稿|色块、图片遮挡|用国家领导人的照片等涉及政治敏感信息的图片进行打码的投稿|半透明马赛克打码的投稿', 'B', '根据预览规范第四条规定：打码 不打码的一次警告二次封禁 敏感的三点一点都不能露，露出部分X头、鲍鱼都是违规打码！ 建议使用图片、圣光遮挡，一般的马赛克容易被打回。', 10),
+(5, '基本常识题', 'RJ号/DMM编号实质是什么？', '并无实质作用|DLsite/DMM发售作品时给予作品的唯一编号（也位于链接处），可以作为方便审核确认站内是否撞车的依据|等同于商业作的发售日期|卡小白投稿的没用玩意', 'B', '请自行GOOGLE了解。', 5),
+(6, '内容规范题', '以下哪种Q群的宣传可以附在本站投稿正文中?', '某某官方资源发布群|UP自己加入的某个游戏的交流群|汉化组的工作交流群、工作群（带广告性质的收费群除外）|UP自己建立的资源内部发布群', 'C', '本站禁止发布任何带有收费或广告性质的内容，群组推广。', 10),
+(7, '内容规范题', '以下哪种投稿的正文简介符合本站的最低要求', '与资源内容相关的极为简短的介绍，如“纯爱、调教、NTR”等|没有提到任何与资源本身内容相关的话题，只是写了一些UP自己近期身边的事|整个正文只有“。。。。。。。。。。。”或者“游戏还行，能玩”|整个正文中只有“解压密码为：acg.la”', 'A', '遵从心意。', 5),
+(8, '查重规范题', '以下哪些情况下，投稿不视作撞车/可以正常通过？(送分题)', '同一位UP连续投稿的同一个本子的不同汉化组汉化的版本|站内已有该资源，另一位UP投稿的该资源的度盘分流档|由不同UP投稿的同一个本子的不同汉化组汉化的版本或原资源已经被爆，由另一位UP投的符合站内相关规定的补档投稿|复制粘贴，修改标题直接发布', 'C', '送分题。', 5),
+(9, '内容规范题', '以下哪些选项是本站不接受投稿的资源类型？', '岛国大片/AV/未成年|全年龄游戏|全年龄图包|全年龄COS', 'A', '本站禁止发布任何岛国，不知名女优，性爱视频，尤其是未成年，一旦发布，删除并永久封号，绝不姑息。', 5),
+(10, '分类规范题', '请选出以下给出选项中分类存在错误的选项', '动画区：【脸肿字幕组】THE ANIMATION 【2V/150M】|图画区：【图包】gawd大佬三月合集【100P/550M】|图画区：【动画】vnk一月MMD新作【100P/550M】|GAME区：【3D】老滚5自整理MOD大合集【80G】', 'C', '分类规范在投稿规范中已明确标明。', 5),
+(11, '隐藏内容题', '以下哪个隐藏方式禁止使用？', '评论可见|积分阅读|登录可见|不隐藏', 'A', '请查阅投稿规范。', 5),
+(12, '积分设置题', '以下哪些资源积分设置不合理？', '【动画】vnk大佬一月合集【5V/200M】：6积分|【图包】vnk大佬一月合集【50P/200M】：1积分|【RPG】家出少女1.2.10汉化版【200M】：20积分|【动画】vnk大佬所有作品合集【50V/20G】：20积分', 'C', '单个资源（包括单个资源和作者某月的合集）最高限制设置6积分，超过不通过，合集资源（资源作者发布的所有作品合集）最高限制设置20积分，超过不通过！', 10),
+(13, '预览规范题', '关于预览图，以下说法正确的是？', '投稿时可以只设置封面不插入预览图至正文|投稿时可以不上传预览图或封面|预览图可以不打码直接上传|投稿时应正确设置封面并将预览图插入至正文，否则会不通过。', 'D', '请查阅投稿规范。', 10),
+(14, '标题规范题', '汉化者名字未知时，汉化者一栏应当如何填写？', '直接不写汉化者也可以|匿名汉化者|中国翻译|汉化者不明 或 未知汉化', 'A', '未知汉化资源可以不标明汉化作品来源。', 5),
+(15, '内容规范题', '关于投稿以下哪种说法是正确的？', '发布自购资源时需要带上自购证明至正文|搬运他人作品时可以不标注作品来源|发布资源合购信息，邀请大家一起合购|发布资源时只使用诚通网盘作为资源主链接。', 'A', '请查阅投稿规范。', 5),
+(16, '内容规范题', '关于资源链接，以下哪些链接是正确的？', 'xxxxxx.com/：7天有效期|xxxxxx.com/：30天有效期|xxxxxx.com/：1天有效期|xxxxxx.com/：永久有效', 'D', '本站明令禁止使用短效链接。', 5),
+(17, '压缩规范题', '用以下哪种压缩软件压缩的文件不符合要求的', 'WINRAR|Bandzip|7-ZIP|快压', 'D', '禁止使用任何国产恶意收费压缩软件。', 5);
+    ";
 
-	global $wpdb;
-	require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    $sql2 = "
+    CREATE TABLE `wp_fl_meta` (
+        `ID` int(11) NOT NULL AUTO_INCREMENT,
+        `meta_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
+        `meta_key` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
+        `meta_var` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
+        PRIMARY KEY (`ID`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+    ";
 
-	if($wpdb->get_var("SHOW TABLES LIKE 'wp_fl_meta'") != 'wp_fl_meta'){
-		dbDelta($sql2);
-	}
-	if($wpdb->get_var("SHOW TABLES LIKE 'fl_ask_tm'") != 'fl_ask_tm'){
-		dbDelta($sql1);
-	}
+    global $wpdb;
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+
+    if($wpdb->get_var("SHOW TABLES LIKE 'wp_fl_meta'") != 'wp_fl_meta'){
+        dbDelta($sql2);
+    }
+    if($wpdb->get_var("SHOW TABLES LIKE 'fl_ask_tm'") != 'fl_ask_tm'){
+        dbDelta($sql1);
+    }
 }
 
 // 添加菜单挂钩
@@ -56,73 +75,6 @@ function newask_menu(){
 	add_submenu_page('newask', '添加题目', '添加题目', 'administrator', 'add_question', 'add_question_page');
 	add_submenu_page('newask', '管理题目', '管理题目', 'administrator', 'manage_questions', 'manage_questions_page');
 	add_submenu_page('newask', '检查更新', '检查更新', 'administrator', 'check_update', 'check_update_page');
-}
-
-function check_github_update() {
-	$repo_url = 'https://api.github.com/repos/znc15/Zibll-Newpostask/releases/latest';
-	$response = wp_remote_get($repo_url, array('headers' => array('User-Agent' => 'WordPress Plugin')));
-
-	if (is_wp_error($response)) {
-		return array('error' => '无法获取更新信息');
-	}
-
-	$body = wp_remote_retrieve_body($response);
-	$data = json_decode($body, true);
-
-	if (isset($data['tag_name']) && isset($data['html_url']) && isset($data['body'])) {
-		return array(
-			'tag_name' => $data['tag_name'],
-			'html_url' => $data['html_url'],
-			'body' => $data['body']
-		);
-	} else {
-		return array('error' => '无法获取更新信息');
-	}
-}
-
-function check_update_page() {
-	$current_version = '1.0.0'; // 当前插件版本
-	$latest_version_info = array();
-	$latest_version = '';
-	$download_url = '';
-	$update_log = '';
-
-	if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['check_update'])) {
-		$latest_version_info = check_github_update();
-		if (isset($latest_version_info['tag_name'])) {
-			$latest_version = $latest_version_info['tag_name'];
-			$download_url = $latest_version_info['html_url'];
-			$update_log = $latest_version_info['body'];
-		} else {
-			$latest_version = $latest_version_info['error'];
-		}
-	}
-
-	echo '
-	<div class="wrap">
-		<h1>检查更新</h1>
-		<p>当前版本: ' . esc_html($current_version) . '</p>';
-
-	if ($latest_version) {
-		if ($latest_version == $current_version) {
-			echo '<p>当前为最新版本</p>';
-		} else {
-			echo '<p>最新版本: ' . esc_html($latest_version) . '</p>';
-			if ($download_url) {
-				echo '<p><a href="' . esc_url($download_url) . '" target="_blank" class="button button-primary">下载最新版本</a></p>';
-			}
-		}
-		if ($update_log) {
-			echo '<h2>更新日志</h2>';
-			echo '<pre>' . esc_html($update_log) . '</pre>';
-		}
-	}
-
-	echo '
-		<form method="post">
-			<input type="submit" name="check_update" id="check_update" class="button button-primary" value="检查更新">
-		</form>
-	</div>';
 }
 
 function newask_page(){
@@ -141,23 +93,18 @@ function newask_page(){
 		return;
 	}
 
-	echo '
-	<div class="wrap">
-		<h1>考卷管理</h1>
-	';
-
-	if($_GET['set'] == ''){
+	if ($_GET['set'] == ''){
 		if ($newask != ''){
 			if ($_GET['pageed'] != '' && $_GET['pageed'] != '0') { //获取当前页码
 				$page = $_GET['pageed'];
-			}elseif($_GET['pageed'] == '0'){
+			} elseif($_GET['pageed'] == '0'){
 				echo '
 				<main role="main" class="container">
 				<div class="zib-widget hot-posts">
 				<p>暂无数据。</p>
 				</div></main>';
 				return;
-			}else{
+			} else {
 				$page = '1';
 			}
 			$syy = intval($page) - 1;
@@ -172,10 +119,11 @@ function newask_page(){
 				return;
 			}
 			$html = '
-		<link rel="stylesheet" id="_bootstrap-css" href="/wp-content/themes/zibll/css/bootstrap.min.css?ver=6.9.1" type="text/css" media="all">
-		<link rel="stylesheet" id="_fontawesome-css" href="/wp-content/themes/zibll/css/font-awesome.min.css?ver=6.9.1" type="text/css" media="all">
-		<link rel="stylesheet" id="_main-css" href="/wp-content/themes/zibll/css/main.min.css?ver=6.9.1" type="text/css" media="all">
-		<link rel="stylesheet" id="_forums-css" href="/wp-content/themes/zibll/inc/functions/bbs/assets/css/main.min.css?ver=6.9.1" type="text/css" media="all">
+		<link rel="stylesheet" id="_bootstrap-css" href="/wp-content/themes/zibll/css/bootstrap.min.css?ver=7.7" type="text/css" media="all">
+		<link rel="stylesheet" id="_fontawesome-css" href="/wp-content/themes/zibll/css/font-awesome.min.css?ver=7.7" type="text/css" media="all">
+		<link rel="stylesheet" id="_main-css" href="/wp-content/themes/zibll/css/main.min.css?ver=7.7" type="text/css" media="all">
+		<link rel="stylesheet" id="_forums-css" href="/wp-content/themes/zibll/inc/functions/bbs/assets/css/main.min.css?ver=7.7" type="text/css" media="all">
+		<h2>考卷管理</h2>
 		<main role="main" class="container">
 		<div class="zib-widget hot-posts">
 		<style>
@@ -209,6 +157,7 @@ function newask_page(){
 			</div>
 			<div style="text-align:center;">
 				<div><b>Design By <a href="https://acg.la">ACG.LA</a> | Power By <a href="https://www.littlesheep.cc">LittleSheep</a></b></div>
+			</div>
 			</main>';
 
 			$html .= '<div class="tablenav-pages"><div class="pagination-links">';
@@ -448,14 +397,27 @@ function manage_questions_page(){
 	}
 
 	global $wpdb;
+
+	if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_selected'])) {
+		if (!empty($_POST['question_ids'])) {
+			$ids_to_delete = implode(',', array_map('intval', $_POST['question_ids']));
+			$wpdb->query("DELETE FROM fl_ask_tm WHERE ID IN ($ids_to_delete)");
+			echo '<div class="updated"><p>选定的题目已删除</p></div>';
+		}
+	}
+
 	$questions = $wpdb->get_results("SELECT * FROM fl_ask_tm", ARRAY_A);
 
 	echo '
 	<div class="wrap">
 		<h1>管理题目</h1>
+		<form method="post">
 		<table class="wp-list-table widefat fixed striped">
 			<thead>
 				<tr>
+					<th scope="col" id="cb" class="manage-column column-cb check-column">
+						<input type="checkbox" id="cb-select-all-1">
+					</th>
 					<th scope="col" id="id" class="manage-column column-id">ID</th>
 					<th scope="col" id="type" class="manage-column column-type">题目类型</th>
 					<th scope="col" id="name" class="manage-column column-name">题目内容</th>
@@ -471,6 +433,9 @@ function manage_questions_page(){
 	foreach($questions as $question){
 		echo '
 		<tr>
+			<th scope="row" class="check-column">
+				<input type="checkbox" name="question_ids[]" value="' . esc_attr($question['ID']) . '">
+			</th>
 			<td>' . esc_html($question['ID']) . '</td>
 			<td>' . esc_html($question['type']) . '</td>
 			<td>' . esc_html($question['name']) . '</td>
@@ -488,6 +453,10 @@ function manage_questions_page(){
 	echo '
 			</tbody>
 		</table>
+		<p class="submit">
+			<input type="submit" name="delete_selected" id="delete_selected" class="button button-primary" value="删除选定项">
+		</p>
+		</form>
 	</div>';
 
 	if(isset($_GET['delete'])){
@@ -497,3 +466,90 @@ function manage_questions_page(){
 	}
 }
 
+add_action('admin_footer', 'manage_questions_page_js');
+
+function manage_questions_page_js() {
+	echo '
+	<script type="text/javascript">
+	jQuery(document).ready(function($){
+		$("#cb-select-all-1").click(function(){
+			var checkedStatus = this.checked;
+			$("input[name=\'question_ids[]\']").each(function(){
+				$(this).prop("checked", checkedStatus);
+			});
+		});
+	});
+	</script>';
+}
+
+function check_github_update() {
+	$repo_url = 'https://api.github.com/repos/znc15/Zibll-Newpostask/releases/latest';
+	$response = wp_remote_get($repo_url, array('headers' => array('User-Agent' => 'WordPress Plugin')));
+
+	if (is_wp_error($response)) {
+		return array('error' => '无法获取更新信息');
+	}
+
+	$body = wp_remote_retrieve_body($response);
+	$data = json_decode($body, true);
+
+	if (isset($data['tag_name']) && isset($data['html_url']) && isset($data['body'])) {
+		return array(
+			'tag_name' => $data['tag_name'],
+			'html_url' => $data['html_url'],
+			'body' => $data['body']
+		);
+	} else {
+		return array('error' => '无法获取更新信息');
+	}
+}
+
+function check_update_page() {
+	require_once plugin_dir_path(__FILE__) . 'includes/Parsedown.php'; // 包含 Parsedown 库
+
+	$current_version = '1.1.0'; // 当前插件版本
+	$latest_version_info = array();
+	$latest_version = '';
+	$download_url = '';
+	$update_log = '';
+
+	if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['check_update'])) {
+		$latest_version_info = check_github_update();
+		if (isset($latest_version_info['tag_name'])) {
+			$latest_version = $latest_version_info['tag_name'];
+			$download_url = $latest_version_info['html_url'];
+			$update_log = $latest_version_info['body'];
+		} else {
+			$latest_version = $latest_version_info['error'];
+		}
+	}
+
+	echo '
+	<div class="wrap">
+		<h1>检查更新</h1>
+		<p>当前版本: ' . esc_html($current_version) . '</p>';
+
+	if ($latest_version) {
+		if ($latest_version == $current_version) {
+			echo '<p>当前为最新版本</p>';
+		} else {
+			echo '<p>最新版本: ' . esc_html($latest_version) . '</p>';
+			if ($download_url) {
+				echo '<p><a href="' . esc_url($download_url) . '" target="_blank" class="button button-primary">下载最新版本</a></p>';
+			}
+		}
+
+		if ($update_log) {
+			$Parsedown = new Parsedown();
+			$update_log_html = $Parsedown->text($update_log); // 将 Markdown 解析为 HTML
+			echo '<h2>更新日志</h2>';
+			echo '<div>' . $update_log_html . '</div>';
+		}
+	}
+
+	echo '
+		<form method="post">
+			<input type="submit" name="check_update" id="check_update" class="button button-primary" value="检查更新">
+		</form>
+	</div>';
+}
