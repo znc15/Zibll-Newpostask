@@ -3,7 +3,7 @@
 Plugin Name: 子比考试系统 (Zibll Theme NewAsk Admin)
 Plugin URI: https://github.com/znc15/Zibll-Newpostask
 Description: 为子比主题添加考试功能 (Add exam function to Zibll Theme)
-Version: 1.0.0
+Version: 1.1.0
 Author: YangXiaoMian
 Author URI: https://www.littlesheep.cc
 */
