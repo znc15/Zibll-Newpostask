@@ -95,3 +95,11 @@
 ## LICENSE
 [GPL-3.0 license](https://github.com/znc15/Zibll-Newpostask?tab=GPL-3.0-1-ov-file#readme)
 
+## 截图
+![](https://i1.mcobj.com/imgb/u15prb/20240711_668f83f6a3c91.png)
+![](https://i1.mcobj.com/imgb/u15prb/20240711_668f83f7414be.png)
+![](https://i1.mcobj.com/imgb/u15prb/20240711_668f83f7c71c5.png)
+
+## 问题
+[Telegram](https://t.me/Count_API)
+[Issue](https://github.com/znc15/Zibll-Newpostask/issues)
