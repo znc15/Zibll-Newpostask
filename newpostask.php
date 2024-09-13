@@ -220,8 +220,6 @@ $tem = '
 <div class="title-h-left"><b><h2>投稿考试</h2></b></div>
 <p>注意：在下面两个链接内找到所有题目正确答案。
 </p>
-<p><b><a href="/63">【点我查看最新投稿规范教程】</a></b></p>
-<p><b><a href="/77">【点我查看如何插入积分下载资源】</a></b></p>
 <p><b>考试满分为：110+分，获得投稿发帖权限需要总分达到90分以上。</b></p>
 <p><b>请您认真查看每一道的答案并牢记于心，若是后续发布违规，不标准投稿将会永久取消发布投稿权限。</b></p>
 <p><b>您通过考试后发布投稿，帖子将不在需要审核。</b></p>
@@ -288,7 +286,7 @@ foreach ($ask_res as $ask_row){
 echo $tem . $temx .'
 <button type="submit" class="but jb-blue padding-lg btn-block"><i class="fa fa-check"></i> 确认提交</button><br><br>
 <div style="text-align:center;">
-<div><b>功能由 © <a href="https://acg.la">ACG.LA</a> · <a href="https://github.com/levent233/zibll-newpostask">Github</a> 提供支持</b></div>
+<div><b>Design By <a href="https://acg.la">ACG.LA</a> | Power By <a href="https://www.littlesheep.cc">LittleSheep</a></b></div>
 </div>
 </form>
 </main>';
