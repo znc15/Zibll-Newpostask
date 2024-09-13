@@ -532,7 +532,7 @@ function check_github_update() {
 function check_update_page() {
 	require_once plugin_dir_path(__FILE__) . 'includes/Parsedown.php'; // 包含 Parsedown 库
 
-	$current_version = '1.1.0'; // 当前插件版本
+	$current_version = '1.2.0'; // 当前插件版本
 	$latest_version_info = array();
 	$latest_version = '';
 	$download_url = '';
