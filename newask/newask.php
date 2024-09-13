@@ -3,7 +3,7 @@
 Plugin Name: 子比考试系统 (Zibll Theme NewAsk Admin)
 Plugin URI: https://github.com/znc15/Zibll-Newpostask
 Description: 为子比主题添加考试功能 (Add exam function to Zibll Theme)
-Version: 1.1.0
+Version: 1.2.0
 Author: YangXiaoMian
 Author URI: https://www.littlesheep.cc
 */
@@ -75,6 +75,8 @@ function newask_menu(){
 	add_submenu_page('newask', '添加题目', '添加题目', 'administrator', 'add_question', 'add_question_page');
 	add_submenu_page('newask', '管理题目', '管理题目', 'administrator', 'manage_questions', 'manage_questions_page');
 	add_submenu_page('newask', '检查更新', '检查更新', 'administrator', 'check_update', 'check_update_page');
+	add_submenu_page('newask', '导入题库', '导入题库', 'administrator', 'import_questions', 'import_questions_page');
+	add_submenu_page('newask', '考试通过设置', '考试通过设置', 'administrator', 'exam_settings', 'exam_settings_page');
 }
 
 function newask_page(){
@@ -92,6 +94,29 @@ function newask_page(){
 		</div>';
 		return;
 	}
+
+    if ($_GET['set'] == '') {
+        // 遍历考试数据
+        foreach ($newask as $arr) {
+            // 如果考试通过，并且启用了自动升级为会员功能
+            if ($arr['meta_var'] == '1' && get_option('enable_vip_upgrade', '0') == '1') {
+                // 获取会员级别和有效期设置
+                $vip_level = get_option('vip_level', 1); // 默认级别为 1
+                $vip_exp_date = get_option('vip_exp_date', 'Permanent'); // 默认到期时间为永久
+                
+                // 获取用户ID
+                $user_id = $arr['meta_id'];
+
+                // 更新用户的 wp_usermeta 表中的 vip_level 和 vip_exp_date
+                update_user_meta($user_id, 'vip_level', $vip_level);
+                update_user_meta($user_id, 'vip_exp_date', $vip_exp_date);
+                
+                // 提示会员激活成功
+                echo '<div class="updated"><p>用户ID ' . esc_html($user_id) . ' 的会员已激活为等级 ' . esc_html($vip_level) . '，有效期为 ' . esc_html($vip_exp_date) . '。</p></div>';
+            }
+        }
+    }
+
 
 	if ($_GET['set'] == ''){
 		if ($newask != ''){
@@ -552,4 +577,167 @@ function check_update_page() {
 			<input type="submit" name="check_update" id="check_update" class="button button-primary" value="检查更新">
 		</form>
 	</div>';
+}
+
+//会员给予
+function exam_settings_page() {
+    // 检查权限
+    if (!is_super_admin()) {
+        wp_die('您不能访问此页面', '权限不足');
+        exit;
+    }
+
+    // 处理表单提交
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_settings'])) {
+        $enable_vip_upgrade = isset($_POST['enable_vip_upgrade']) ? '1' : '0';
+        $vip_level = intval($_POST['vip_level']); // 获取设置的会员级别
+        $vip_exp_date = sanitize_text_field($_POST['vip_exp_date']); // 获取设置的会员到期时间
+        update_option('enable_vip_upgrade', $enable_vip_upgrade);
+        update_option('vip_level', $vip_level); // 保存会员级别
+        update_option('vip_exp_date', $vip_exp_date); // 保存会员有效期
+        echo '<div class="updated"><p>设置已保存</p></div>';
+    }
+
+    // 获取当前设置
+    $enable_vip_upgrade = get_option('enable_vip_upgrade', '0');
+    $vip_level = get_option('vip_level', 1); // 默认级别为 1
+    $vip_exp_date = get_option('vip_exp_date', 'Permanent'); // 默认到期时间为永久
+
+    // 输出设置页面表单
+    echo '
+    <div class="wrap">
+        <h1>考试通过后会员设置</h1>
+        <form method="post">
+            <table class="form-table">
+                <tr>
+                    <th scope="row"><label for="enable_vip_upgrade">考试通过后自动升级为会员</label></th>
+                    <td>
+                        <input type="checkbox" name="enable_vip_upgrade" id="enable_vip_upgrade" value="1" ' . checked($enable_vip_upgrade, '1', false) . '>
+                        <label for="enable_vip_upgrade">启用</label>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="vip_level">会员级别</label></th>
+                    <td>
+                        <input type="number" name="vip_level" id="vip_level" value="' . esc_attr($vip_level) . '" min="1" max="2">
+                        <p class="description">会员级别，1为普通会员，2为高级会员。</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="vip_exp_date">会员有效期</label></th>
+                    <td>
+                        <input type="text" name="vip_exp_date" id="vip_exp_date" value="' . esc_attr($vip_exp_date) . '">
+                        <p class="description">设置会员的有效期，比如 "Permanent" 表示永久，或者可以设置为具体的时间，如 "2025-12-31"。</p>
+                    </td>
+                </tr>
+            </table>
+            <p class="submit">
+                <input type="submit" name="save_settings" id="save_settings" class="button button-primary" value="保存设置">
+            </p>
+        </form>
+    </div>';
+}
+
+//题目批量上传
+function import_questions_page() {
+    // 检查权限
+    if (!is_super_admin()) {
+        wp_die('您不能访问此页面', '权限不足');
+        exit;
+    }
+
+    // 处理文件上传和解析
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['questions_file'])) {
+        $file = $_FILES['questions_file'];
+
+        // 检查文件是否上传成功
+        if ($file['error'] === UPLOAD_ERR_OK) {
+            $file_tmp_path = $file['tmp_name'];
+            $file_content = file_get_contents($file_tmp_path);
+
+            // 调用解析函数来处理文件内容
+            $import_result = import_questions_from_txt($file_content);
+
+            if ($import_result) {
+                echo '<div class="updated"><p>题目导入成功！</p></div>';
+            } else {
+                echo '<div class="error"><p>题目导入失败，请检查文件格式。</p></div>';
+            }
+        } else {
+            echo '<div class="error"><p>文件上传失败，请重试。</p></div>';
+        }
+    }
+
+    // 输出文件上传表单和格式说明
+    echo '
+    <div class="wrap">
+        <h1>导入题库</h1>
+        <form method="post" enctype="multipart/form-data">
+            <table class="form-table">
+                <tr>
+                    <th scope="row"><label for="questions_file">选择题库文件 (.txt)</label></th>
+                    <td>
+                        <input type="file" name="questions_file" id="questions_file" accept=".txt" required>
+                        <p class="description">请上传 .txt 文件，题目格式需符合以下要求。</p>
+                    </td>
+                </tr>
+            </table>
+
+            <h3>题目格式说明：</h3>
+            <p>每行表示一个题目，字段之间使用 <strong>|</strong> 分隔，字段顺序如下：</p>
+            <pre>
+题目类型 | 题目内容 | 选项1 | 选项2 | 选项3 | 选项4 | 正确答案 | 提示 | 分数
+            </pre>
+            <p>示例：</p>
+            <pre>
+标题规范题 | 以下图包投稿类标题哪个是正确的？ | 选项A | 选项B | 选项C | 选项D | A | 标题规范提示 | 5
+内容规范题 | 解压密码是否违规？ | 选项A | 选项B | 选项C | 选项D | D | 解压提示 | 10
+            </pre>
+
+            <p class="submit">
+                <input type="submit" name="import_questions" id="import_questions" class="button button-primary" value="导入题目">
+            </p>
+        </form>
+    </div>';
+}
+
+// 解析上传的 .txt 文件并导入题目到数据库
+function import_questions_from_txt($file_content) {
+    global $wpdb;
+
+    // 分割文件内容为行，每行表示一个题目
+    $lines = explode(PHP_EOL, $file_content);
+
+    foreach ($lines as $line) {
+        // 分割每一行的题目数据
+        $fields = explode('|', $line);
+
+        // 确保每行有足够的字段
+        if (count($fields) < 8) {
+            continue; // 跳过格式不正确的行
+        }
+
+        // 解析题目信息
+        $type = sanitize_text_field($fields[0]);
+        $name = sanitize_text_field($fields[1]);
+        $all_answer = sanitize_text_field(implode('|', array_slice($fields, 2, 4))); // 选项
+        $answer = sanitize_text_field($fields[6]);
+        $tips = sanitize_textarea_field($fields[7]);
+        $score = intval($fields[8]);
+
+        // 将题目插入数据库
+        $wpdb->insert(
+            'fl_ask_tm',
+            array(
+                'type' => $type,
+                'name' => $name,
+                'all_answer' => $all_answer,
+                'answer' => $answer,
+                'tips' => $tips,
+                'score' => $score
+            )
+        );
+    }
+
+    return true; // 导入成功
 }
