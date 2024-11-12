@@ -3,10 +3,11 @@
 Plugin Name: 子比考试系统 (Zibll Theme NewAsk Admin)
 Plugin URI: https://github.com/znc15/Zibll-Newpostask
 Description: 为子比主题添加考试功能 (Add exam function to Zibll Theme)
-Version: 1.2.0
+Version: 1.3.0
 Author: YangXiaoMian
 Author URI: https://www.littlesheep.cc
 */
+error_reporting(E_ALL & ~E_NOTICE);
 
 if ( ! defined( 'ABSPATH' ) ) {
 	die( 'Invalid request.' );
@@ -76,7 +77,7 @@ function newask_menu(){
 	add_submenu_page('newask', '管理题目', '管理题目', 'administrator', 'manage_questions', 'manage_questions_page');
 	add_submenu_page('newask', '检查更新', '检查更新', 'administrator', 'check_update', 'check_update_page');
 	add_submenu_page('newask', '导入题库', '导入题库', 'administrator', 'import_questions', 'import_questions_page');
-	add_submenu_page('newask', '考试通过设置', '考试通过设置', 'administrator', 'exam_settings', 'exam_settings_page');
+	add_submenu_page('newask', '设置', '设置', 'administrator', 'exam_settings', 'exam_settings_page');
 }
 
 function newask_page(){
@@ -98,21 +99,34 @@ function newask_page(){
     if ($_GET['set'] == '') {
         // 遍历考试数据
         foreach ($newask as $arr) {
+            // 获取用户ID
+            $user_id = $arr['meta_id'];
+
+            // 扣除积分和余额
+            $points_cost = get_option('points_balance_cost', 0);
+            $balance_cost = get_option('balance_cost', 0); 
+
+            // 扣除积分
+            $current_points = intval(get_user_meta($user_id, 'points', true));
+            if ($current_points >= $points_cost && $points_cost > 0) {
+                update_user_meta($user_id, 'points', $current_points - $points_cost);
+            }
+
+            // 扣除余额
+            $current_balance = floatval(get_user_meta($user_id, 'balance', true));
+            if ($current_balance >= $balance_cost && $balance_cost > 0) {
+                update_user_meta($user_id, 'balance', $current_balance - $balance_cost);
+            }
+
             // 如果考试通过，并且启用了自动升级为会员功能
             if ($arr['meta_var'] == '1' && get_option('enable_vip_upgrade', '0') == '1') {
                 // 获取会员级别和有效期设置
                 $vip_level = get_option('vip_level', 1); // 默认级别为 1
                 $vip_exp_date = get_option('vip_exp_date', 'Permanent'); // 默认到期时间为永久
-                
-                // 获取用户ID
-                $user_id = $arr['meta_id'];
 
                 // 更新用户的 wp_usermeta 表中的 vip_level 和 vip_exp_date
                 update_user_meta($user_id, 'vip_level', $vip_level);
                 update_user_meta($user_id, 'vip_exp_date', $vip_exp_date);
-                
-                // 提示会员激活成功
-                echo '<div class="updated"><p>用户ID ' . esc_html($user_id) . ' 的会员已激活为等级 ' . esc_html($vip_level) . '，有效期为 ' . esc_html($vip_exp_date) . '。</p></div>';
             }
         }
     }
@@ -532,7 +546,7 @@ function check_github_update() {
 function check_update_page() {
 	require_once plugin_dir_path(__FILE__) . 'includes/Parsedown.php'; // 包含 Parsedown 库
 
-	$current_version = '1.2.0'; // 当前插件版本
+	$current_version = '1.3.0'; // 当前插件版本
 	$latest_version_info = array();
 	$latest_version = '';
 	$download_url = '';
@@ -592,9 +606,25 @@ function exam_settings_page() {
         $enable_vip_upgrade = isset($_POST['enable_vip_upgrade']) ? '1' : '0';
         $vip_level = intval($_POST['vip_level']); // 获取设置的会员级别
         $vip_exp_date = sanitize_text_field($_POST['vip_exp_date']); // 获取设置的会员到期时间
+        $require_points = isset($_POST['require_points']) ? '1' : '0'; // 新增：是否需要积分
+        $require_balance = isset($_POST['require_balance']) ? '1' : '0'; // 新增：是否需要余额
+        // 新增：保存积分和余额扣除设置
+        $points_balance_cost = intval($_POST['points_balance_cost']);
+        $balance_cost = intval($_POST['balance_cost']);
+        
         update_option('enable_vip_upgrade', $enable_vip_upgrade);
         update_option('vip_level', $vip_level); // 保存会员级别
         update_option('vip_exp_date', $vip_exp_date); // 保存会员有效期
+        update_option('require_points', $require_points); // 保存积分设置
+        update_option('require_balance', $require_balance); // 保存余额设置
+        // 新增：保存扣除设置
+        update_option('points_balance_cost', $points_balance_cost);
+        update_option('balance_cost', $balance_cost);
+        
+        // 新增：保存考试介绍内容，允许 HTML
+        $exam_intro = wp_kses_post($_POST['exam_intro']); // 允许 HTML
+        update_option('exam_intro', $exam_intro); // 保存考试介绍内容
+
         echo '<div class="updated"><p>设置已保存</p></div>';
     }
 
@@ -602,11 +632,24 @@ function exam_settings_page() {
     $enable_vip_upgrade = get_option('enable_vip_upgrade', '0');
     $vip_level = get_option('vip_level', 1); // 默认级别为 1
     $vip_exp_date = get_option('vip_exp_date', 'Permanent'); // 默认到期时间为永久
+    $require_points = get_option('require_points', '0'); // 获取积分设置
+    $require_balance = get_option('require_balance', '0'); // 获取余额设置
+    // 新增：获取扣除设置
+    $points_balance_cost = get_option('points_balance_cost', 0);
+    $balance_cost = get_option('balance_cost', 0);
+    $exam_intro = get_option('exam_intro', ''); // 获取考试介绍内容
+
+    // 新增：设置默认内容
+    if (empty($exam_intro)) {
+        $exam_intro = '<p><b>考试满分为：120+分，获得投稿发帖权限需要总分达到90分以上。</b></p>
+    <p><b>请您认真查看每一道的答案并牢记于心，若是后续发布违规，不标准投稿将会永久取消发布投稿权限。</b></p>
+    <p><b>您通过考试后发布投稿，帖子将不在需要审核。</b></p>';
+    }
 
     // 输出设置页面表单
     echo '
     <div class="wrap">
-        <h1>考试通过后会员设置</h1>
+        <h1>考试设置</h1>
         <form method="post">
             <table class="form-table">
                 <tr>
@@ -628,6 +671,41 @@ function exam_settings_page() {
                     <td>
                         <input type="text" name="vip_exp_date" id="vip_exp_date" value="' . esc_attr($vip_exp_date) . '">
                         <p class="description">设置会员的有效期，比如 "Permanent" 表示永久，或者可以设置为具体的时间，如 "2025-12-31"。</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="require_points">答题是否需要积分</label></th>
+                    <td>
+                        <input type="checkbox" name="require_points" id="require_points" value="1" ' . checked($require_points, '1', false) . '>
+                        <label for="require_points">启用</label>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="require_balance">答题是否需要余额</label></th>
+                    <td>
+                        <input type="checkbox" name="require_balance" id="require_balance" value="1" ' . checked($require_balance, '1', false) . '>
+                        <label for="require_balance">启用</label>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="points_balance_cost">答题扣除积分</label></th>
+                    <td>
+                        <input type="number" name="points_balance_cost" id="points_balance_cost" value="' . esc_attr($points_balance_cost) . '" min="0">
+                        <p class="description">设置每次答题扣除的积分数量。</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="balance_cost">答题扣除余额</label></th>
+                    <td>
+                        <input type="number" name="balance_cost" id="balance_cost" value="' . esc_attr($balance_cost) . '" min="0">
+                        <p class="description">设置每次答题扣除的余额数量。</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="exam_intro">考试介绍内容</label></th>
+                    <td>
+                        <textarea name="exam_intro" id="exam_intro" class="regular-text" rows="5">' . esc_textarea($exam_intro) . '</textarea>
+                        <p class="description">设置考试页面的介绍内容。</p>
                     </td>
                 </tr>
             </table>

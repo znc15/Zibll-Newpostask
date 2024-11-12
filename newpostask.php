@@ -3,6 +3,7 @@
  * Template name: 投稿考试
  * Description:   newask page
  */
+error_reporting(E_ALL & ~E_NOTICE);
 global $wpdb;
 get_header();
 if(!is_user_logged_in()){
@@ -10,26 +11,19 @@ if(!is_user_logged_in()){
     $html .= '<main role="main" class="container"><div class="alert jb-red em12" style="margin: 2em 0;"><b>未经授权的访问（未登录）！</b></div>';
     $html .= '<a style="margin-bottom: 2em;" href="/" class="but jb-yellow padding-lg"><i class="fa fa-long-arrow-left" aria-hidden="true"></i><span class="ml10">返回</span></a></main>';
     echo $html;
-    get_footer();
-    exit;
-}
-
-// 开始输出缓冲
-ob_start();
-
-//考试答题
+    //考试答题
 $uid = get_current_user_id();
 $sql_ck = "SELECT * FROM `wp_fl_meta` WHERE `meta_id` = '$uid' AND `meta_key` = 'newask'";
 $row_ck = $wpdb->get_row($sql_ck, ARRAY_A);
-if ($row_ck && isset($row_ck['meta_var'])) {
-    if ($row_ck['meta_var'] != '1') {
-        header('Location:/newask');
-        exit;
-    }
+if($row_ck['meta_var'] != '1'){
+    header('Location:/newask');
+    exit;
 }
-
+    get_footer();
+    exit;
+}
 //管理员查询他人试卷
-if(isset($_GET['action']) && $_GET['action'] == 'ck'){
+if($_GET['action'] == 'ck'){
     if (!is_super_admin()) {
         $html .= '<main role="main" class="container"><div class="alert jb-red em12" style="margin: 2em 0;"><b>未经授权的访问（权限不足）！</b></div>';
         $html .= '<a style="margin-bottom: 2em;" href="/" class="but jb-yellow padding-lg"><i class="fa fa-long-arrow-left" aria-hidden="true"></i><span class="ml10">返回</span></a></main>';
@@ -66,25 +60,75 @@ if(isset($_GET['action']) && $_GET['action'] == 'ck'){
 $uid = get_current_user_id();
 $sql_ck = "SELECT * FROM `wp_fl_meta` WHERE `meta_id` = '$uid' AND `meta_key` = 'newask'";
 $row_ck = $wpdb->get_row($sql_ck, ARRAY_A);
-if ($row_ck && isset($row_ck['meta_var'])) {
-    if ($row_ck['meta_var'] == '1') {
-        $sql_ht = "SELECT * FROM `wp_fl_meta` WHERE `meta_id` = '$uid' AND `meta_key` = 'newask_html'";
-        $row_ht = $wpdb->get_row($sql_ht, ARRAY_A);
-        echo html_entity_decode($row_ht['meta_var']);
-        get_footer();
-        exit;
-    } elseif ($row_ck['meta_var'] == '-2') {
-        $sql_ht = "SELECT * FROM `wp_fl_meta` WHERE `meta_id` = '$uid' AND `meta_key` = 'newask_html'";
-        $row_ht = $wpdb->get_row($sql_ht, ARRAY_A);
-        $html .= '<main role="main" class="container"><div class="alert jb-red em12" style="margin: 2em 0;"><b>因未遵守发布规范，你的投稿发帖权限与考试权限已被永久取消！无法重考，若需申诉请联系i@acg.la</b></div>';
-        $html .= '<a style="margin-bottom: 2em;" href="/" class="but jb-yellow padding-lg"><i class="fa fa-long-arrow-left" aria-hidden="true"></i><span class="ml10">返回</span></a></main>';
-        echo $html;
-        get_footer();
-        exit;
-    }
+if($row_ck['meta_var'] == '1'){
+    $sql_ht = "SELECT * FROM `wp_fl_meta` WHERE `meta_id` = '$uid' AND `meta_key` = 'newask_html'";
+    $row_ht = $wpdb->get_row($sql_ht, ARRAY_A);
+    echo html_entity_decode($row_ht['meta_var']);
+    get_footer();
+    exit;
+}elseif($row_ck['meta_var'] == '-2'){
+    $sql_ht = "SELECT * FROM `wp_fl_meta` WHERE `meta_id` = '$uid' AND `meta_key` = 'newask_html'";
+    $row_ht = $wpdb->get_row($sql_ht, ARRAY_A);
+    $html .= '<main role="main" class="container"><div class="alert jb-red em12" style="margin: 2em 0;"><b>因未遵守发布规范，你的投稿发帖权限与考试权限已被永久取消！无法重考，若需申诉请联系i@acg.la</b></div>';
+    $html .= '<a style="margin-bottom: 2em;" href="/" class="but jb-yellow padding-lg"><i class="fa fa-long-arrow-left" aria-hidden="true"></i><span class="ml10">返回</span></a></main>';
+    echo $html;
+    get_footer();
+    exit;
 }
 //验证题目答案输出成绩
-if(isset($_GET['action']) && $_GET['action'] == 'ans_check'){  
+if($_GET['action'] == 'ans_check'){  
+    // 扣除积分和余额
+    $uid = get_current_user_id();
+    $points_cost = get_option('points_balance_cost', 0); // 获取每次答题扣除的积分
+    $balance_cost = get_option('balance_cost', 0); // 获取每次答题扣除的余额
+
+    // 检查积分设置是否启用
+    $is_points_enabled = get_option('require_points', '0'); // 获取积分设置是否启用
+
+    // 检查余额设置是否启用
+    $is_balance_enabled = get_option('require_balance', '0'); // 获取余额设置是否启用
+
+    // 扣除积分
+    $current_points = intval(get_user_meta($uid, 'points', true));
+    if ($is_points_enabled && $current_points >= $points_cost && $points_cost > 0) { // 确保积分设置启用且积分足够
+        update_user_meta($uid, 'points', $current_points - $points_cost);
+
+        // 插入数据到 wp_zibpay_order
+        global $wpdb;
+        $order_data = array(
+            'user_id' => $uid,
+            'order_num' => '考试扣除',
+            'order_type' => 1,
+            'create_time' => current_time('mysql'),
+            'pay_type' => 'points',
+            'pay_detail' => serialize(array('points' => $points_cost)),
+            'pay_time' => current_time('mysql'),
+            'status' => 1
+        );
+
+        $wpdb->insert('wp_zibpay_order', $order_data);
+    }
+
+    // 扣除余额
+    $current_balance = floatval(get_user_meta($uid, 'balance', true));
+    if ($is_balance_enabled && $current_balance >= $balance_cost && $balance_cost > 0) { // 确保余额设置启用且余额足够
+        update_user_meta($uid, 'balance', $current_balance - $balance_cost);
+
+        // 插入数据到 wp_zibpay_order
+        $order_data_balance = array(
+            'user_id' => $uid,
+            'order_num' => '考试扣除',
+            'order_type' => 1,
+            'create_time' => current_time('mysql'),
+            'pay_type' => 'balance',
+            'pay_detail' => serialize(array('balance' => $balance_cost)),
+            'pay_time' => current_time('mysql'),
+            'status' => 1
+        );
+
+        $wpdb->insert('wp_zibpay_order', $order_data_balance);
+    }
+
     $html = '<main role="main" class="container">';
     $arr = $_POST;
     $keys = array_keys($arr);
@@ -135,13 +179,52 @@ if(isset($_GET['action']) && $_GET['action'] == 'ans_check'){
             $in_sql = "INSERT INTO `wp_fl_meta` (`ID`, `meta_id`, `meta_key`, `meta_var`) VALUES (NULL, $uid, 'newask', '1');";
             $wpdb->query($in_sql);
         }  
+
+        // 添加会员升级逻辑
+        if(get_option('enable_vip_upgrade', '0') == '1') {
+            // 获取设置的会员级别和有效期
+            $vip_level = get_option('vip_level', 1); 
+            $vip_exp_date = get_option('vip_exp_date', 'Permanent');
+            
+            // 更新用户的会员信息
+            update_user_meta($uid, 'vip_level', $vip_level);
+            update_user_meta($uid, 'vip_exp_date', $vip_exp_date);
+            
+            // 记录会员升级日志
+            $log_data = array(
+                'user_id' => $uid,
+                'action' => 'exam_vip_upgrade',
+                'time' => current_time('mysql'),
+                'value' => array(
+                    'level' => $vip_level,
+                    'exp_date' => $vip_exp_date,
+                    'exam_score' => $alls
+                )
+            );
+            
+            // 可以添加日志记录到数据库
+            do_action('zib_user_upgrade_log', $log_data);
+        }
+
         $user_info = get_userdata($uid);
         $html .= '
     <div class="zib-widget hot-posts">
-<div class="title-h-left"><b><h2>最终得分：' . $alls . '分【2023-02-09 第一代卷】</h2></b></div>
-<b><p>考生：【' . $user_info->user_nicename . '】，恭喜合格，您已获得投稿免审权限，请您严格遵守投稿规范发布内容，否则若是后续发布违规，不标准投稿将会永久取消发布投稿权限。</p></b>
-<a style="margin-bottom: 2em;" href="/newposts" class="but jb-yellow padding-lg"><i class="fa fa-long-arrow-left" aria-hidden="true"></i><span class="ml10">发布投稿</span></a>
-</div>';
+    <div class="title-h-left"><b><h2>最终得分：' . $alls . '分【2023-02-09 第一代卷】</h2></b></div>
+    <b><p>考生：【' . $user_info->user_nicename . '】，恭喜合格，您已获得投稿免审权限';
+    
+    // 如果启用了会员升级，显示会员升级信息
+    if(get_option('enable_vip_upgrade', '0') == '1') {
+        $html .= '并已自动升级为' . ($vip_level == 1 ? '普通会员' : '高级会员');
+        if($vip_exp_date != 'Permanent') {
+            $html .= '(有效期至' . $vip_exp_date . ')';
+        } else {
+            $html .= '(永久有效)';
+        }
+    }
+    
+    $html .= '，请您严格遵守投稿规范发布内容，否则若是后续发布违规，不标准投稿将会永久取消发布投稿权限。</p></b>
+    <a style="margin-bottom: 2em;" href="/newposts" class="but jb-yellow padding-lg"><i class="fa fa-long-arrow-left" aria-hidden="true"></i><span class="ml10">发布投稿</span></a>
+    </div>';
     }else{
         if($row_ck['meta_var'] != ''){
             $up_sql = "UPDATE `wp_fl_meta` SET `meta_var` = '-1' WHERE `meta_id` = '$uid' AND `meta_key` = 'newask';";
@@ -222,17 +305,12 @@ $ask_res = $wpdb->get_results($ask_q, ARRAY_A);
 $x=0;  
 //var_dump($ask_res);
 //style="width: 95%;margin: auto;"
-$temx = ''; // 初始化 $temx 变量
 $tem = '
 <main role="main" class="container">
 <form action="/newask?action=ans_check" method="post">
 <div class="zib-widget hot-posts">
 <div class="title-h-left"><b><h2>投稿考试</h2></b></div>
-<p>注意：在下面两个链接内找到所有题目正确答案。
-</p>
-<p><b>考试满分为：110+分，获得投稿发帖权限需要总分达到90分以上。</b></p>
-<p><b>请您认真查看每一道的答案并牢记于心，若是后续发布违规，不标准投稿将会永久取消发布投稿权限。</b></p>
-<p><b>您通过考试后发布投稿，帖子将不在需要审核。</b></p>
+<p>' . wp_kses_post(get_option('exam_intro', '')) . '</p>
 </div>
 ';
 //循环取出所有题目数据
@@ -308,6 +386,3 @@ echo $tem . $temx .'
 </main>
 <?php
 get_footer();
-
-// 在输出之前结束缓冲并清除输出
-ob_end_flush();
