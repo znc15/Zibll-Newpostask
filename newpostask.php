@@ -10,19 +10,26 @@ if(!is_user_logged_in()){
     $html .= '<main role="main" class="container"><div class="alert jb-red em12" style="margin: 2em 0;"><b>未经授权的访问（未登录）！</b></div>';
     $html .= '<a style="margin-bottom: 2em;" href="/" class="but jb-yellow padding-lg"><i class="fa fa-long-arrow-left" aria-hidden="true"></i><span class="ml10">返回</span></a></main>';
     echo $html;
-    //考试答题
-$uid = get_current_user_id();
-$sql_ck = "SELECT * FROM `wp_fl_meta` WHERE `meta_id` = '$uid' AND `meta_key` = 'newask'";
-$row_ck = $wpdb->get_row($sql_ck, ARRAY_A);
-if($row_ck['meta_var'] != '1'){
-    header('Location:/newask');
-    exit;
-}
     get_footer();
     exit;
 }
+
+// 开始输出缓冲
+ob_start();
+
+//考试答题
+$uid = get_current_user_id();
+$sql_ck = "SELECT * FROM `wp_fl_meta` WHERE `meta_id` = '$uid' AND `meta_key` = 'newask'";
+$row_ck = $wpdb->get_row($sql_ck, ARRAY_A);
+if ($row_ck && isset($row_ck['meta_var'])) {
+    if ($row_ck['meta_var'] != '1') {
+        header('Location:/newask');
+        exit;
+    }
+}
+
 //管理员查询他人试卷
-if($_GET['action'] == 'ck'){
+if(isset($_GET['action']) && $_GET['action'] == 'ck'){
     if (!is_super_admin()) {
         $html .= '<main role="main" class="container"><div class="alert jb-red em12" style="margin: 2em 0;"><b>未经授权的访问（权限不足）！</b></div>';
         $html .= '<a style="margin-bottom: 2em;" href="/" class="but jb-yellow padding-lg"><i class="fa fa-long-arrow-left" aria-hidden="true"></i><span class="ml10">返回</span></a></main>';
@@ -59,23 +66,25 @@ if($_GET['action'] == 'ck'){
 $uid = get_current_user_id();
 $sql_ck = "SELECT * FROM `wp_fl_meta` WHERE `meta_id` = '$uid' AND `meta_key` = 'newask'";
 $row_ck = $wpdb->get_row($sql_ck, ARRAY_A);
-if($row_ck['meta_var'] == '1'){
-    $sql_ht = "SELECT * FROM `wp_fl_meta` WHERE `meta_id` = '$uid' AND `meta_key` = 'newask_html'";
-    $row_ht = $wpdb->get_row($sql_ht, ARRAY_A);
-    echo html_entity_decode($row_ht['meta_var']);
-    get_footer();
-    exit;
-}elseif($row_ck['meta_var'] == '-2'){
-    $sql_ht = "SELECT * FROM `wp_fl_meta` WHERE `meta_id` = '$uid' AND `meta_key` = 'newask_html'";
-    $row_ht = $wpdb->get_row($sql_ht, ARRAY_A);
-    $html .= '<main role="main" class="container"><div class="alert jb-red em12" style="margin: 2em 0;"><b>因未遵守发布规范，你的投稿发帖权限与考试权限已被永久取消！无法重考，若需申诉请联系i@acg.la</b></div>';
-    $html .= '<a style="margin-bottom: 2em;" href="/" class="but jb-yellow padding-lg"><i class="fa fa-long-arrow-left" aria-hidden="true"></i><span class="ml10">返回</span></a></main>';
-    echo $html;
-    get_footer();
-    exit;
+if ($row_ck && isset($row_ck['meta_var'])) {
+    if ($row_ck['meta_var'] == '1') {
+        $sql_ht = "SELECT * FROM `wp_fl_meta` WHERE `meta_id` = '$uid' AND `meta_key` = 'newask_html'";
+        $row_ht = $wpdb->get_row($sql_ht, ARRAY_A);
+        echo html_entity_decode($row_ht['meta_var']);
+        get_footer();
+        exit;
+    } elseif ($row_ck['meta_var'] == '-2') {
+        $sql_ht = "SELECT * FROM `wp_fl_meta` WHERE `meta_id` = '$uid' AND `meta_key` = 'newask_html'";
+        $row_ht = $wpdb->get_row($sql_ht, ARRAY_A);
+        $html .= '<main role="main" class="container"><div class="alert jb-red em12" style="margin: 2em 0;"><b>因未遵守发布规范，你的投稿发帖权限与考试权限已被永久取消！无法重考，若需申诉请联系i@acg.la</b></div>';
+        $html .= '<a style="margin-bottom: 2em;" href="/" class="but jb-yellow padding-lg"><i class="fa fa-long-arrow-left" aria-hidden="true"></i><span class="ml10">返回</span></a></main>';
+        echo $html;
+        get_footer();
+        exit;
+    }
 }
 //验证题目答案输出成绩
-if($_GET['action'] == 'ans_check'){  
+if(isset($_GET['action']) && $_GET['action'] == 'ans_check'){  
     $html = '<main role="main" class="container">';
     $arr = $_POST;
     $keys = array_keys($arr);
@@ -213,6 +222,7 @@ $ask_res = $wpdb->get_results($ask_q, ARRAY_A);
 $x=0;  
 //var_dump($ask_res);
 //style="width: 95%;margin: auto;"
+$temx = ''; // 初始化 $temx 变量
 $tem = '
 <main role="main" class="container">
 <form action="/newask?action=ans_check" method="post">
@@ -298,3 +308,6 @@ echo $tem . $temx .'
 </main>
 <?php
 get_footer();
+
+// 在输出之前结束缓冲并清除输出
+ob_end_flush();
